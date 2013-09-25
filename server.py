@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+Why wrong port?
+"""
+
 import random
 import os
 import datetime as D
@@ -50,29 +54,29 @@ def parse_proxy(p):
 class ProxyServer(HTTPServer):
     http_client = tornado.httpclient.AsyncHTTPClient()
     blocking_http_client = tornado.httpclient.HTTPClient()
+    last_proxy_update = D.datetime(year=1970, month=1, day=1)
 
     def __init__(self, *args, **kwargs):
         self.application = None
         self.user_agents = self._get_user_agents()
-        self.proxy_list = []
-        self.last_proxy_update = None
-        self._update_proxy_list()
+        print "getting proxies.."
+        self.proxies = SmartHat(self._get_proxy_list())
+        print "got proxies."
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
     def _get_user_agents(self, fname=pth("user_agents.txt")):
         with open(fname, 'r') as f:
             return f.readlines()
 
-    def _update_proxy_list(self, source_url=source_url):
+    def _get_proxy_list(self, source_url=source_url):
         response = self.blocking_http_client.fetch(source_url)
         self.last_proxy_update = D.datetime.now()
-        self.proxy_list = map(parse_proxy, json.loads(response.body)['values'])
-        logging.info("Proxy list updated.")
+        return map(parse_proxy, json.loads(response.body)['values'])
 
     def get_proxy(self):
         if D.datetime.now() > self.last_proxy_update + D.timedelta(hours=24):
-            self._update_proxy_list()
-        return random.choice(self.proxy_list)
+            self.proxies = self._update_proxy_list()
+        return self.proxies.pop()
 
     def feign_user_agent(self):
         return random.choice(self.user_agents)
@@ -87,13 +91,20 @@ class ProxyServer(HTTPServer):
                 response = yield self.http_client.fetch(request.uri,
                         headers=request.headers, 
                         request_timeout=5,
-                        **proxy)
+                        **proxy.obj)
             except tornado.httpclient.HTTPError as e:
                 # TODO: passthrough 400's
                 logging.error(e)
+                proxy.fail()
                 tries -= 1
             else:
+                proxy.success()
                 success = True
+            finally:
+                try:
+                    self.proxies.push(proxy)
+                except:
+                    import pdb; pdb.set_trace()
 
         if not success:
             # HTTP 417 is not to be confused with HTTP 418.

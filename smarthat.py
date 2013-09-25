@@ -3,6 +3,7 @@ A smart data structure that lets you draw random elements from a set with a
 probability distribution weighted on likelihood of success.
 """
 import heapq
+from operator import attrgetter
 
 class HeapObj:
     def __init__(self, obj, alpha=0, beta=0):
@@ -42,7 +43,7 @@ class SmartHat:
 
     def pop(self):
         """Pop off the smallest object. """
-        return heapq.heappop(self.heap)
+        return heapq.nsmallest(1, self.heap, key=attrgetter('beta'))[0]
 
     def push(self, elem):
         heapq.heappush(self.heap, elem)
