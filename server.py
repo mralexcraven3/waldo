@@ -4,6 +4,8 @@ import random
 import os
 import datetime as D
 import ujson as json
+from smarthat import SmartHat, HeapObj
+
 
 import tornado.options
 import tornado.httpclient
