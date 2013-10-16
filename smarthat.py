@@ -43,10 +43,13 @@ class SmartHat:
 
     def pop(self):
         """Pop off the smallest object. """
-        return heapq.nsmallest(1, self.heap, key=attrgetter('beta'))[0]
+        return heapq.heappop(self.heap)
 
     def push(self, elem):
         heapq.heappush(self.heap, elem)
+
+    def __len__(self):
+        return len(self.heap)
 
 import random
 if __name__ == '__main__':
