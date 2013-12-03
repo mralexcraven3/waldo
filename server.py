@@ -1,21 +1,17 @@
 #!/usr/bin/env python
 
-"""
-Why wrong port?
-"""
-
 import random
 import os
 import datetime as D
 import ujson as json
-from smarthat import SmartHat, HeapObj
-
+from smarthat import SmartHat
 
 import tornado.options
 import tornado.httpclient
 from tornado.options import define, options, parse_command_line
 from tornado.httpserver import HTTPServer
 import tornado.gen
+import statsd
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,9 +55,7 @@ class ProxyServer(HTTPServer):
     def __init__(self, *args, **kwargs):
         self.application = None
         self.user_agents = self._get_user_agents()
-        print "getting proxies.."
         self.proxies = SmartHat(self._get_proxy_list())
-        print "got proxies."
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
     def _get_user_agents(self, fname=pth("user_agents.txt")):
@@ -84,17 +78,40 @@ class ProxyServer(HTTPServer):
     @tornado.gen.engine
     def handle_request(self, request):
         request.headers['User-Agent'] = self.feign_user_agent()
-        success, tries = False, 10
+        try:
+            request_timeout = int(request.headers.get('Waldo-Timeout', 5))
+        except ValueError:
+            request_timeout = 5
+
+        try:
+            max_retries = int(request.headers.get('Waldo-Max-Retries', 10))
+        except ValueError:
+            max_retries = 10
+
+        try:
+            must_succeed = int(request.headers.get('Waldo-Must-Complete', '0'))
+        except ValueError:
+            must_succeed = 0
+        finally:
+            if must_succeed > 0:
+                max_retries = 100
+
+        success, tries = False, max_retries
         while not success and tries > 0:
             try:
                 proxy = self.get_proxy()
                 response = yield self.http_client.fetch(request.uri,
                         headers=request.headers, 
-                        request_timeout=5,
+                        request_timeout=request_timeout,
                         **proxy.obj)
             except tornado.httpclient.HTTPError as e:
                 # TODO: passthrough 400's
                 logging.error(e)
+                if e.code in (400, 404, 599):
+                    # wtf pycurl
+                    status_code = e.code
+                    if e.code == 599:
+                        status_code = 404
                 proxy.fail()
                 tries -= 1
             else:
@@ -104,14 +121,14 @@ class ProxyServer(HTTPServer):
                 try:
                     self.proxies.push(proxy)
                 except:
-                    import pdb; pdb.set_trace()
+                    print "Something is going on."
 
         if not success:
             # HTTP 417 is not to be confused with HTTP 418.
             msg = "Too many retries for %s." % request.uri
-            request.write("HTTP/1.1 417 Expectation Failed\r\nContent-Length: %d\r\n\r\n%s" %
-                    (len(msg), msg))
-            logging.info("%s exceeded retry limit." % request.uri)
+            request.write("HTTP/1.1 %s\r\nContent-Length: %d\r\n\r\n%s" %
+                    (status_code, len(msg), msg))
+            logging.info("%s failed" % request.uri)
         else:
             logging.info("Success: %s" % request.uri)
             request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" %
