@@ -11,7 +11,6 @@ import tornado.httpclient
 from tornado.options import define, options, parse_command_line
 from tornado.httpserver import HTTPServer
 import tornado.gen
-from datetime import  timedelta
 import logging
 logger = logging.getLogger(__name__)
 
@@ -48,6 +47,13 @@ def parse_proxy(p):
 
 
 class ProxyServer(HTTPServer):
+
+    supported_headers = (
+        'Waldo-Timeout',
+        'Waldo-Max-Retries',
+        'Waldo-Must-Complete'
+    )
+
     http_client = tornado.httpclient.AsyncHTTPClient()
     blocking_http_client = tornado.httpclient.HTTPClient()
     last_proxy_update = D.datetime(year=1970, month=1, day=1)
@@ -104,6 +110,13 @@ class ProxyServer(HTTPServer):
             if must_succeed > 0:
                 max_retries = 100
 
+        # Remove Waldo HTTP headers
+        for header in self.supported_headers:
+            try:
+                del request.headers[header]
+            except:
+                pass
+
         success, tries = False, max_retries
         while not success and tries > 0:
             try:
@@ -134,11 +147,11 @@ class ProxyServer(HTTPServer):
                     print "Something is going on."
                 if self.successes + self.failures > 0:
                     ratio = 100 * float(self.successes) / (self.successes + self.failures)
-                    print "%s / %s  - (%.2f%% success) - %s" % (
+                    logging.info("%s / %s  - (%.2f%% success) - %s" % (
                             self.successes,
                             self.successes + self.failures,
                             ratio,
-                            len(self.proxies))
+                            len(self.proxies)))
 
         if not success:
             # HTTP 417 is not to be confused with HTTP 418.
