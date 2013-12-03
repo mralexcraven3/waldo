@@ -11,8 +11,7 @@ import tornado.httpclient
 from tornado.options import define, options, parse_command_line
 from tornado.httpserver import HTTPServer
 import tornado.gen
-import statsd
-
+from datetime import  timedelta
 import logging
 logger = logging.getLogger(__name__)
 
@@ -20,6 +19,7 @@ tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncH
 
 source_url = "http://ec2-204-236-128-163.us-west-1.compute.amazonaws.com:1234"
 pth = lambda x: os.path.join(os.path.dirname(__file__), x)
+
 
 define("debug", default=False, type=bool, help="debug mode?")
 define("port", default=1234, type=bool, help="which port?")
@@ -52,6 +52,13 @@ class ProxyServer(HTTPServer):
     blocking_http_client = tornado.httpclient.HTTPClient()
     last_proxy_update = D.datetime(year=1970, month=1, day=1)
 
+    max_connections = 20
+    active_connections = 0
+
+    successes = 0
+    failures = 0
+
+
     def __init__(self, *args, **kwargs):
         self.application = None
         self.user_agents = self._get_user_agents()
@@ -69,6 +76,7 @@ class ProxyServer(HTTPServer):
 
     def get_proxy(self):
         if D.datetime.now() > self.last_proxy_update + D.timedelta(hours=24):
+            logging.debug("Update proxy list.")
             self.proxies = self._update_proxy_list()
         return self.proxies.pop()
 
@@ -104,8 +112,7 @@ class ProxyServer(HTTPServer):
                         headers=request.headers, 
                         request_timeout=request_timeout,
                         **proxy.obj)
-            except tornado.httpclient.HTTPError as e:
-                # TODO: passthrough 400's
+            except (Exception, tornado.httpclient.HTTPError) as e:
                 logging.error(e)
                 if e.code in (400, 404, 599):
                     # wtf pycurl
@@ -114,14 +121,27 @@ class ProxyServer(HTTPServer):
                         status_code = 404
                 proxy.fail()
                 tries -= 1
+                self.failures += 1
+                if proxy:
+                    self.proxies.push(proxy)
             else:
+                self.successes += 1
                 proxy.success()
                 success = True
+                self.proxies.push(proxy)
+
             finally:
                 try:
                     self.proxies.push(proxy)
                 except:
                     print "Something is going on."
+                if self.successes + self.failures > 0:
+                    ratio = 100 * float(self.successes) / (self.successes + self.failures)
+                    print "%s / %s  - (%.2f%% success) - %s" % (
+                            self.successes,
+                            self.successes + self.failures,
+                            ratio,
+                            len(self.proxies))
 
         if not success:
             # HTTP 417 is not to be confused with HTTP 418.
@@ -130,7 +150,7 @@ class ProxyServer(HTTPServer):
                     (status_code, len(msg), msg))
             logging.info("%s failed" % request.uri)
         else:
-            logging.info("Success: %s" % request.uri)
+            # logging.info("Success: %s" % request.uri)
             request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" %
                 (len(response.body), response.body))
         request.finish()
