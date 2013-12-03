@@ -122,13 +122,10 @@ class ProxyServer(HTTPServer):
                 proxy.fail()
                 tries -= 1
                 self.failures += 1
-                if proxy:
-                    self.proxies.push(proxy)
             else:
                 self.successes += 1
                 proxy.success()
                 success = True
-                self.proxies.push(proxy)
 
             finally:
                 try:
