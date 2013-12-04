@@ -21,7 +21,7 @@ pth = lambda x: os.path.join(os.path.dirname(__file__), x)
 
 
 define("debug", default=False, type=bool, help="debug mode?")
-define("port", default=1234, type=bool, help="which port?")
+define("port", default=1234, type=int, help="which port?")
 define("user_agents", default="user_agents.txt", type=str, 
         help="list of user agents.")
 define("loglevel", default='INFO', type=str, help='logging level')
