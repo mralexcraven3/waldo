@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
 
-source_url = "http://ec2-204-236-128-163.us-west-1.compute.amazonaws.com:1234"
+source_url = "http://54.83.47.158:1234/"
 pth = lambda x: os.path.join(os.path.dirname(__file__), x)
 
 
