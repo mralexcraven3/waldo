@@ -10,10 +10,12 @@ import tornado.options
 import tornado.httpclient
 from tornado.options import define, options, parse_command_line
 from tornado.httpserver import HTTPServer
+from collections import deque
 import tornado.gen
 import logging
-logger = logging.getLogger(__name__)
+import csv
 
+logger = logging.getLogger(__name__)
 tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
 
 source_url = "http://54.83.47.158:1234/"
@@ -21,12 +23,13 @@ pth = lambda x: os.path.join(os.path.dirname(__file__), x)
 
 
 define("debug", default=False, type=bool, help="debug mode?")
-define("port", default=12345, type=int, help="which port?")
+define("port", default=1234, type=int, help="which port?")
 define("user_agents", default="user_agents.txt", type=str,
        help="list of user agents.")
 define("loglevel", default='INFO', type=str, help='logging level')
 define("warmup", default=False, type=bool, help="warmup server?")
 
+fatal_error_codes = (502, 503, 407, 403, 599)
 
 def parse_proxy(p):
     """Parse a proxy into its component parts.
@@ -68,6 +71,7 @@ class ProxyServer(HTTPServer):
     def __init__(self, *args, **kwargs):
         self.application = None
         self.user_agents = self._get_user_agents()
+        self.debug = kwargs.pop('debug', False)
         self.refresh_proxies()
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
@@ -103,8 +107,22 @@ class ProxyServer(HTTPServer):
     def feign_user_agent(self):
         return random.choice(self.user_agents)
 
+    def write_proxy_stat(self):
+        """ Write out the proxy performance to a CSV file. """
+        print "flushing proxy list"
+        with open('proxy_stat.csv', 'w') as f:
+            writer = csv.writer(f)
+            header = ('host', 'port', 'score')
+            writer.writerow(header)
+            for row in self.proxies:
+                writer.writerow([row.obj['proxy_host'], row.obj['proxy_port'], row.score()])
+            
+
     @tornado.gen.engine
     def handle_request(self, request):
+        if self.debug and (self.failures + self.successes) % 100 == 0 and self.successes > 0:
+            self.write_proxy_stat()
+
         request.headers['User-Agent'] = self.feign_user_agent()
         try:
             request_timeout = int(request.headers.get('Waldo-Timeout', 5))
@@ -131,21 +149,15 @@ class ProxyServer(HTTPServer):
             except:
                 pass
 
-        success, tries = False, max_retries
+        success, tries, status_code = False, max_retries, 200
         while not success and tries > 0:
             try:
                 proxy = self.get_proxy()
                 response = yield self.http_client.fetch(request.uri,
-                                                        headers=request.headers,
-                                                        request_timeout=request_timeout,
-                                                        **proxy.obj)
+                    headers=request.headers, request_timeout=request_timeout, **proxy.obj)
             except tornado.httpclient.HTTPError as e:
                 logging.error(e)
-                if e.code in (400, 404, 599):
-                    # wtf pycurl
-                    status_code = e.code
-                    if e.code == 599:
-                        status_code = 404
+                status_code = e.code
                 proxy.fail()
                 tries -= 1
                 self.failures += 1
@@ -155,17 +167,22 @@ class ProxyServer(HTTPServer):
                 self.failures += 1
             else:
                 self.successes += 1
-                proxy.success()
+                proxy.success(response.time_info['total'] * 1000.0)
                 success = True
 
             finally:
                 try:
-                    self.proxies.push(proxy)
+                    if status_code in fatal_error_codes:
+                        print "Bad proxy - discarding."
+                    elif proxy:
+                        self.proxies.push(proxy)
+                    else:
+                        print "Proxy disappeared..."
                 except:
                     print "Something is going on."
                 if self.successes + self.failures > 0:
                     ratio = 100 * float(self.successes) / (self.successes + self.failures)
-                    logging.info("%s / %s  - (%.2f%% success) - %s" % (
+                    logging.info("%s / %s  - (%.2f%% success) - %s proxies available." % (
                         self.successes,
                         self.successes + self.failures,
                         ratio,
@@ -173,6 +190,7 @@ class ProxyServer(HTTPServer):
 
         if not success:
             # HTTP 417 is not to be confused with HTTP 418.
+            status_code = 417
             msg = "Too many retries for %s." % request.uri
             request.write("HTTP/1.1 %s\r\nContent-Length: %d\r\n\r\n%s" %
                           (status_code, len(msg), msg))
@@ -186,8 +204,8 @@ class ProxyServer(HTTPServer):
 
 if __name__ == '__main__':
     io_loop = tornado.ioloop.IOLoop.instance()
-    http_server = ProxyServer(io_loop=io_loop)
     parse_command_line()
+    http_server = ProxyServer(io_loop=io_loop, debug=options.debug)
     http_server.listen(options.port)
     logging.basicConfig(level=getattr(logging, options.loglevel))
     io_loop.start()

@@ -4,6 +4,7 @@ probability distribution weighted on likelihood of success.
 """
 import heapq
 from operator import attrgetter
+from collections import deque
 
 class HeapObj:
     def __init__(self, obj, alpha=0, beta=0):
@@ -18,7 +19,10 @@ class HeapObj:
         self.beta = beta
 
     def __lt__(self, other):
-        return self.beta < other.beta
+        return self.score() < other.score()
+
+    def score(self):
+        return (5.0 + float(self.alpha)) / (5 + self.alpha + self.beta)
 
     def success(self):
         self.alpha += 1
@@ -32,12 +36,43 @@ class HeapObj:
 
     @classmethod
     def convert(cls, obj, *args, **kwargs):
-        return HeapObj(obj=obj, *args, **kwargs)
+        return cls(obj=obj, *args, **kwargs)
+
+
+class TimedHeapObj:
+    def __init__(self, obj, maxlen=100):
+        """
+        A TimedHeapObj is scored based on average response time instead of 
+        the number of successes and failures.
+
+        Time is stored in ms.
+        """
+        self.obj = obj
+        self.response_times = deque(maxlen=maxlen)
+
+    def success(self, msec):
+        self.response_times.append(msec)
+
+    def fail(self, penalty=10000):
+        self.response_times.append(penalty)
+
+    def score(self):
+        return (1 + sum(self.response_times) * 1.0) / (1 + len(self.response_times))
+
+    def __lt__(self, other):
+        return self.score() > other.score()
+
+    def __repr__(self):
+        return "<TimedHeapObj: len=%s>" % len(self.response_times)
+
+    @classmethod
+    def convert(cls, obj, *args, **kwargs):
+        return cls(obj=obj, *args, **kwargs)
 
 
 class SmartHat:
     def __init__(self, iterable):
-        _data = [HeapObj.convert(obj) for obj in iterable]
+        _data = [TimedHeapObj.convert(obj) for obj in iterable]
         heapq.heapify(_data)
         self.heap = _data
 
@@ -50,6 +85,12 @@ class SmartHat:
 
     def __len__(self):
         return len(self.heap)
+
+    def __iter__(self):
+        for obj in self.heap:
+            yield(obj)
+        raise StopIteration()
+
 
 import random
 if __name__ == '__main__':
@@ -68,4 +109,5 @@ if __name__ == '__main__':
         else:
             elem.fail()
         sh.push(elem)
+
 
