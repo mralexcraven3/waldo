@@ -39,40 +39,9 @@ class HeapObj:
         return cls(obj=obj, *args, **kwargs)
 
 
-class TimedHeapObj:
-    def __init__(self, obj, maxlen=100):
-        """
-        A TimedHeapObj is scored based on average response time instead of 
-        the number of successes and failures.
-
-        Time is stored in ms.
-        """
-        self.obj = obj
-        self.response_times = deque(maxlen=maxlen)
-
-    def success(self, msec):
-        self.response_times.append(msec)
-
-    def fail(self, penalty=10000):
-        self.response_times.append(penalty)
-
-    def score(self):
-        return (1 + sum(self.response_times) * 1.0) / (1 + len(self.response_times))
-
-    def __lt__(self, other):
-        return self.score() > other.score()
-
-    def __repr__(self):
-        return "<TimedHeapObj: len=%s>" % len(self.response_times)
-
-    @classmethod
-    def convert(cls, obj, *args, **kwargs):
-        return cls(obj=obj, *args, **kwargs)
-
-
 class SmartHat:
     def __init__(self, iterable):
-        _data = [TimedHeapObj.convert(obj) for obj in iterable]
+        _data = [HeapObj.convert(obj) for obj in iterable]
         heapq.heapify(_data)
         self.heap = _data
 

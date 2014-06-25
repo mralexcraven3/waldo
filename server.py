@@ -21,7 +21,6 @@ tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncH
 source_url = "http://ec2-204-236-128-163.us-west-1.compute.amazonaws.com:1234/"
 pth = lambda x: os.path.join(os.path.dirname(__file__), x)
 
-
 define("debug", default=False, type=bool, help="debug mode?")
 define("port", default=1234, type=int, help="which port?")
 define("user_agents", default="user_agents.txt", type=str,
@@ -62,9 +61,6 @@ class ProxyServer(HTTPServer):
     blocking_http_client = tornado.httpclient.HTTPClient()
     last_proxy_update = D.datetime(year=1970, month=1, day=1)
 
-    max_connections = 20
-    active_connections = 0
-
     successes = 0
     failures = 0
 
@@ -96,7 +92,7 @@ class ProxyServer(HTTPServer):
 
     def needs_proxy_refresh(self):
         return D.datetime.now() > (self.last_proxy_update +
-                D.timedelta(seconds=86400))
+                D.timedelta(seconds=300))
 
     def get_proxy(self):
         if self.needs_proxy_refresh():
@@ -107,16 +103,16 @@ class ProxyServer(HTTPServer):
     def feign_user_agent(self):
         return random.choice(self.user_agents)
 
-    def write_proxy_stat(self):
-        """ Write out the proxy performance to a CSV file. """
-        print "flushing proxy list"
-        with open('proxy_stat.csv', 'w') as f:
-            writer = csv.writer(f)
-            header = ('host', 'port', 'score')
-            writer.writerow(header)
-            for row in self.proxies:
-                writer.writerow([row.obj['proxy_host'], row.obj['proxy_port'], row.score()])
-            
+    def maybe_print_stats(self):
+        if self.successes + self.failures > 0:
+            ratio = 100 * float(self.successes) / (self.successes + self.failures)
+            logging.info("%s / %s  - (%.2f%% success) - %s proxies available." % (
+                self.successes,
+                self.successes + self.failures,
+                ratio,
+                len(self.proxies)))
+
+
 
     @tornado.gen.engine
     def handle_request(self, request):
@@ -161,32 +157,13 @@ class ProxyServer(HTTPServer):
                 proxy.fail()
                 tries -= 1
                 self.failures += 1
-            except:
-                print "Strange http bug."
-                proxy.fail()
-                self.failures += 1
+                self.proxies.push(proxy)
             else:
                 self.successes += 1
-                proxy.success(response.time_info['total'] * 1000.0)
+                proxy.success()
                 success = True
-
-            finally:
-                try:
-                    if status_code in fatal_error_codes:
-                        print "Bad proxy - discarding."
-                    elif proxy:
-                        self.proxies.push(proxy)
-                    else:
-                        print "Proxy disappeared..."
-                except:
-                    print "Something is going on."
-                if self.successes + self.failures > 0:
-                    ratio = 100 * float(self.successes) / (self.successes + self.failures)
-                    logging.info("%s / %s  - (%.2f%% success) - %s proxies available." % (
-                        self.successes,
-                        self.successes + self.failures,
-                        ratio,
-                        len(self.proxies)))
+                self.proxies.push(proxy)
+            self.maybe_print_stats()
 
         if not success:
             # HTTP 417 is not to be confused with HTTP 418.
