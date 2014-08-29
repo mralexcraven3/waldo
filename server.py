@@ -67,38 +67,25 @@ class ProxyServer(HTTPServer):
     def __init__(self, *args, **kwargs):
         self.application = None
         self.user_agents = self._get_user_agents()
-        self.debug = kwargs.pop('debug', False)
-        self.refresh_proxies()
+        self.debug = kwargs.pop("debug", False)
+        self.proxies = self.get_proxies()
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
     def _get_user_agents(self, fname=pth("user_agents.txt")):
         with open(fname, 'r') as f:
             return f.readlines()
 
-    def refresh_proxies(self, source_url=source_url):
-        logging.info("Fetching proxy list")
-        while 1:
-            try:
-                response = self.blocking_http_client.fetch(source_url)
-                logging.info("Fetched proxy list.")
-                values = map(parse_proxy, json.loads(response.body)['values'])
-            except Exception, e:
-                print "Exception ", e
-                time.sleep(10)
-            else:
-                self.proxies = SmartHat(values)
-                self.last_proxy_update = D.datetime.now()
-                break
-
-    def needs_proxy_refresh(self):
-        return D.datetime.now() > (self.last_proxy_update +
-                D.timedelta(seconds=300))
+    def get_proxies(self):
+        with open(pth('proxies.txt')) as f:
+            return [x.split(':')[0] for x in f.readlines()]
 
     def get_proxy(self):
-        if self.needs_proxy_refresh():
-            print "Refresh proxies"
-            self.refresh_proxies()
-        return self.proxies.pop()
+        return {
+            'proxy_host': random.choice(self.proxies),
+            'proxy_port': 80,
+            'proxy_username': 'dantheman1',
+            'proxy_password': 'whatintheworld'
+        }
 
     def feign_user_agent(self):
         return random.choice(self.user_agents)
@@ -112,13 +99,8 @@ class ProxyServer(HTTPServer):
                 ratio,
                 len(self.proxies)))
 
-
-
     @tornado.gen.engine
     def handle_request(self, request):
-        if self.debug and (self.failures + self.successes) % 100 == 0 and self.successes > 0:
-            self.write_proxy_stat()
-
         request.headers['User-Agent'] = self.feign_user_agent()
         try:
             request_timeout = int(request.headers.get('Waldo-Timeout', 5))
@@ -150,21 +132,19 @@ class ProxyServer(HTTPServer):
             try:
                 proxy = self.get_proxy()
                 response = yield self.http_client.fetch(request.uri,
-                    headers=request.headers, request_timeout=request_timeout, **proxy.obj)
+                    headers=request.headers, 
+                    request_timeout=request_timeout, 
+                    **proxy
+                )
             except tornado.httpclient.HTTPError as e:
                 logging.error(e)
                 status_code = e.code
-                proxy.fail()
                 tries -= 1
                 self.failures += 1
-                self.proxies.push(proxy)
             else:
                 self.successes += 1
-                proxy.success()
                 success = True
-                self.proxies.push(proxy)
-            self.maybe_print_stats()
-
+        
         if not success:
             # HTTP 417 is not to be confused with HTTP 418.
             status_code = 417
