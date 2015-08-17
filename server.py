@@ -13,12 +13,15 @@ from tornado.httpserver import HTTPServer
 from collections import deque
 import tornado.gen
 import logging
+logger = logging.getLogger(__name__)
 import csv
 
-logger = logging.getLogger(__name__)
-tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
+from finders.hma_email import EmailFinder
+from finders.buyproxies import BuyProxiesFinder
+from finders.proxylist import ProxylistFinder
 
-source_url = "http://ec2-204-236-128-163.us-west-1.compute.amazonaws.com:1234/"
+
+tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
 pth = lambda x: os.path.join(os.path.dirname(__file__), x)
 
 define("debug", default=False, type=bool, help="debug mode?")
@@ -26,27 +29,9 @@ define("port", default=1234, type=int, help="which port?")
 define("user_agents", default="user_agents.txt", type=str,
        help="list of user agents.")
 define("loglevel", default='INFO', type=str, help='logging level')
-define("warmup", default=False, type=bool, help="warmup server?")
+# define("warmup", default=False, type=bool, help="warmup server?")
 
 fatal_error_codes = (502, 503, 407, 403, 599)
-
-def parse_proxy(p):
-    """Parse a proxy into its component parts.
-
-    This should eventually use httplib to support usernames and passwords.
-
-    >>> resp = parse_proxy('127.0.0.1:1234')
-    >>> resp['proxy_host']
-    '127.0.0.1'
-    >>> resp['proxy_port']
-    1234
-    """
-    _p = p.split(':')
-    # curl_httpclient requires proxy_host to be a string
-    return dict(
-        proxy_host=str(_p[0]),
-        proxy_port=int(_p[1])
-    )
 
 
 class ProxyServer(HTTPServer):
@@ -71,13 +56,18 @@ class ProxyServer(HTTPServer):
         self.proxies = self.get_proxies()
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
+
     def _get_user_agents(self, fname=pth("user_agents.txt")):
         with open(fname, 'r') as f:
             return f.readlines()
 
-    def get_proxies(self):
-        with open(pth('proxies.txt')) as f:
-            return [x.split(':')[0] for x in f.readlines()]
+
+    def get_proxies(self, finders=[EmailFinder, ProxylistFinder, BuyProxiesFinder]):
+        _ = set()
+        for finder in finders:
+            _.update(finder().get_all())
+        logging.info("Adding %s proxies." % len(_))
+        return _
 
     def get_proxy(self):
         return {

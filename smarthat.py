@@ -2,6 +2,7 @@
 A smart data structure that lets you draw random elements from a set with a
 probability distribution weighted on likelihood of success.
 """
+
 import heapq
 from operator import attrgetter
 from collections import deque
@@ -62,7 +63,7 @@ class SmartHat:
 
 
 import random
-if __name__ == '__main__':
+if __name__ == '__test__':
     test_list = [
         '127.0.0.1:1230',
         '127.0.0.1:1231',
@@ -78,5 +79,3 @@ if __name__ == '__main__':
         else:
             elem.fail()
         sh.push(elem)
-
-
