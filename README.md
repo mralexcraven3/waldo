@@ -8,9 +8,9 @@ I found myself constantly re-writing proxy balancing code to manage outbound
 proxy servers. This process, while necessary, got a little bit tedious, so I
 decided to factor out the proxying logic into a separate meta-proxy server.
 
-[How it works]: Graphics/How-It-Works.png
+![How it works](https://github.com/omarish/waldo/blob/master/Graphics/How-It-Works.png)
 
-Waldo's advantges are:
+## Advantages
 
 ### Concurrency
 
@@ -24,7 +24,7 @@ With a sufficiently large proxy list, keeping track of proxies becomes difficult
 Proxies often die, or need to be put in a "cool off" box so that they don't get
 burnt out from too much traffic. Waldo handles all of this for you.
 
-### Simple
+### Simplicity
 
 Waldo implements the standard HTTP Proxy spec, so just connect it to it like you
 would any other proxy server, and it'll handle the rest for you.
