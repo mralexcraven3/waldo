@@ -1,12 +1,21 @@
 # waldo
 
-Waldo is a proxy server that routes web traffic through other proxy servers.
+Waldo is a proxy server that routes web traffic through other proxy servers. It's
+basically a meta-proxy server that tries to best route your traffic so that you
+do not get blocked.
 
 ## Motivation
 
-I found myself constantly re-writing proxy balancing code to manage outbound
-proxy servers. This process, while necessary, got a little bit tedious, so I
-decided to factor out the proxying logic into a separate meta-proxy server.
+Large scale web crawling can be difficult if you're crawling a single website.
+Most sites will block you before long, so you'll have to write some logic to
+pull a list of available proxy servers, handle connection pooling across those proxies,
+and keep track of which proxies are still alive, and which are no longer responding to
+your requests. 
+
+I found myself constantly re-writing this code in various projects to manage outbound
+proxying. This process, while necessary, got a little bit tedious, so I
+decided to factor out the proxying logic into a separate proxy server to handle the load
+balancing.
 
 ![How it works](https://github.com/omarish/waldo/blob/master/Graphics/How-It-Works.png)
 
@@ -28,6 +37,12 @@ burnt out from too much traffic. Waldo handles all of this for you.
 
 Waldo implements the standard HTTP Proxy spec, so just connect it to it like you
 would any other proxy server, and it'll handle the rest for you.
+
+### Diverse Proxies
+
+When crawling a large website, you'll often find yourself stitching together various
+proxy server lists. Waldo has the concept of a `Finder`, which is basically a class 
+that pulls in a list of proxy servers for you.
 
 ## Custom Headers
 
@@ -77,5 +92,5 @@ python -m doctest server.py
 
 ## TODO
 
-[] Support SOCKS.
-[] Smarter proxy balancing.
+- [] Support SOCKS.
+- [] Smarter proxy balancing.

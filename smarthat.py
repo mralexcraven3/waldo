@@ -1,50 +1,11 @@
-"""
-A smart data structure that lets you draw random elements from a set with a
-probability distribution weighted on likelihood of success.
-"""
-
 import heapq
 from operator import attrgetter
-from collections import deque
-
-class HeapObj:
-    def __init__(self, obj, alpha=0, beta=0):
-        """
-        Create a new heap object.
-
-        alpha = the number of successes
-        beta = the number of failures
-        """
-        self.obj = obj
-        self.alpha = alpha
-        self.beta = beta
-
-    def __lt__(self, other):
-        return self.score() < other.score()
-
-    def score(self):
-        return (5.0 + float(self.alpha)) / (5 + self.alpha + self.beta)
-
-    def success(self):
-        self.alpha += 1
-
-    def fail(self):
-        self.beta += 1
-
-    def __repr__(self):
-        return "<HeapObj: %s, alpha=%s, beta=%s>" % (self.obj, self.alpha,
-                self.beta)
-
-    @classmethod
-    def convert(cls, obj, *args, **kwargs):
-        return cls(obj=obj, *args, **kwargs)
 
 
 class SmartHat:
     def __init__(self, iterable):
-        _data = [HeapObj.convert(obj) for obj in iterable]
-        heapq.heapify(_data)
-        self.heap = _data
+        heapq.heapify(iterable)
+        self.heap = iterable
 
     def pop(self):
         """Pop off the smallest object. """
