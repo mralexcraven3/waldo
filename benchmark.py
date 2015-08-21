@@ -13,5 +13,5 @@ def make_request(index):
     data = response.read()
     print "%s: %s" % (index, len(data))
 
-jobs = [gevent.spawn(make_request, i) for i in range(200)]
+jobs = [gevent.spawn(make_request, i) for i in range(500)]
 gevent.joinall(jobs)

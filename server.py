@@ -11,21 +11,26 @@ import tornado.httpclient
 from tornado.options import define, options, parse_command_line
 from tornado.httpserver import HTTPServer
 from collections import deque
+import tornadoredis
 import tornado.gen
 import logging
 logger = logging.getLogger(__name__)
-from finders.flatfile import FlatfileFinder
 
+from finders.flatfile import Flatfile
+from finders.proxyspy import ProxySpy
 
 tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
 
-define("debug", default=False, type=bool, help="debug mode?")
+define("debug", default=True, type=bool, help="debug mode?")
 define("port", default=1234, type=int, help="expose waldo on which port?")
 # define("user_agents", default="user_agents.txt", type=str,
 #       help="list of user agents.")
 define("loglevel", default='INFO', type=str, help='logging level')
 
 pth = lambda x: os.path.join(os.path.dirname(__file__), x)
+
+redis_conn = tornadoredis.Client()
+redis_conn.connect()
 
 class ProxyServer(HTTPServer):
     supported_headers = (
@@ -35,6 +40,7 @@ class ProxyServer(HTTPServer):
     )
     http_client = tornado.httpclient.AsyncHTTPClient()
     fatal_error_codes = (502, 503, 407, 403, 599)
+    REDIS_CHANNEL = "waldo"
 
     def __init__(self, *args, **kwargs):
         self.user_agents = open(pth('user_agents.txt')).readlines()
@@ -43,7 +49,7 @@ class ProxyServer(HTTPServer):
         self.history = deque(maxlen=20)
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
-    def get_proxies(self, finders=[FlatfileFinder]):
+    def get_proxies(self, finders=[Flatfile, ProxySpy]):
         proxies = set()
         for finder in finders:
             new_proxies = finder().get_all()
@@ -78,25 +84,19 @@ class ProxyServer(HTTPServer):
                 status_code = e.code
                 tries -= 1
                 proxy.mark_failure()
-                self.history.append(0)
+                redis_conn.publish(self.REDIS_CHANNEL, status_code)
                 if not status_code in self.fatal_error_codes:
                     self.restore_proxy(proxy)
             else:
-                logging.info("Success")
-                success = True
-                proxy.mark_success()
-                self.restore_proxy(proxy)
-                self.history.append(1)
+                redis_conn.publish(self.REDIS_CHANNEL, response.code)
+                if response.code == 200:
+                    logging.info("Success")
+                    success = True
+                    proxy.mark_success()
+                    self.restore_proxy(proxy)
 
-        if not success:
-            # HTTP 417 is not to be confused with HTTP 418.
-            status_code = 417
-            msg = "Too many retries for %s." % request.uri
-            request.write("HTTP/1.1 %s\r\nContent-Length: %d\r\n\r\n%s" %
-                          (status_code, len(msg), msg))
-            logging.info("%s failed" % request.uri)
-        else:
-            request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" %
+        if success:
+           request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" %
                           (len(response.body), response.body))
         request.finish()
 

@@ -17,7 +17,7 @@ proxying. This process, while necessary, got a little bit tedious, so I
 decided to factor out the proxying logic into a separate proxy server to handle the load
 balancing.
 
-![How it works](https://github.com/omarish/waldo/blob/master/Graphics/How-It-Works.png)
+![How it works](https://github.com/omarish/waldo/blob/master/doc/Graphics/How-It-Works.png)
 
 ## Advantages
 

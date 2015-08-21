@@ -1,6 +1,6 @@
 from proxy import Proxy
 
-class FlatfileFinder(object):
+class Flatfile(object):
     def get_all(self):
         def _makeproxy(s):
             r = s.split(':')
