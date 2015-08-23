@@ -10,7 +10,7 @@ Large scale web crawling can be difficult if you're crawling a single website.
 Most sites will block you before long, so you'll have to write some logic to
 pull a list of available proxy servers, handle connection pooling across those proxies,
 and keep track of which proxies are still alive, and which are no longer responding to
-your requests. 
+your requests.
 
 I found myself constantly re-writing this code in various projects to manage outbound
 proxying. This process, while necessary, got a little bit tedious, so I
@@ -41,7 +41,7 @@ would any other proxy server, and it'll handle the rest for you.
 ### Diverse Proxies
 
 When crawling a large website, you'll often find yourself stitching together various
-proxy server lists. Waldo has the concept of a `Finder`, which is basically a class 
+proxy server lists. Waldo has the concept of a `Finder`, which is basically a class
 that pulls in a list of proxy servers for you.
 
 To test, try this:
@@ -82,3 +82,15 @@ $ python monitor.py
 
 The monitoring page by default listens on port 1235.
 
+## Testing and Benchmarking
+
+I still need to write proper test coverage, but do have a benchmarking utility
+in `benchmark.py` that will simulate heavy requests. Additionally,
+[Apache Bench](http://httpd.apache.org/docs/2.2/programs/ab.html)
+and [Siege](https://www.joedog.org/siege-home/) have been very helpful.  
+
+To run the benchmarking script:
+
+```bash
+$ python benchmark.py
+```

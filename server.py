@@ -1,30 +1,25 @@
 #!/usr/bin/env python
 
-import random
 import os
-import datetime as D
-import ujson as json
-from smarthat import SmartHat
-import time
+import random
 import tornado.options
 import tornado.httpclient
 from tornado.options import define, options, parse_command_line
 from tornado.httpserver import HTTPServer
-from collections import deque
-import tornadoredis
 import tornado.gen
+import tornadoredis
 import logging
 logger = logging.getLogger(__name__)
 
+from smarthat import SmartHat
 from finders.flatfile import Flatfile
 from finders.proxyspy import ProxySpy
 
-tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
+tornado.httpclient.AsyncHTTPClient.configure(
+    "tornado.curl_httpclient.CurlAsyncHTTPClient")
 
 define("debug", default=True, type=bool, help="debug mode?")
 define("port", default=1234, type=int, help="expose waldo on which port?")
-# define("user_agents", default="user_agents.txt", type=str,
-#       help="list of user agents.")
 define("loglevel", default='INFO', type=str, help='logging level')
 
 pth = lambda x: os.path.join(os.path.dirname(__file__), x)
@@ -32,12 +27,8 @@ pth = lambda x: os.path.join(os.path.dirname(__file__), x)
 redis_conn = tornadoredis.Client()
 redis_conn.connect()
 
+
 class ProxyServer(HTTPServer):
-    supported_headers = (
-        'Waldo-Timeout',
-        'Waldo-Max-Retries',
-        'Waldo-Must-Complete'
-    )
     http_client = tornado.httpclient.AsyncHTTPClient()
     fatal_error_codes = (502, 503, 407, 403, 599)
     REDIS_CHANNEL = "waldo"
@@ -46,7 +37,6 @@ class ProxyServer(HTTPServer):
         self.user_agents = open(pth('user_agents.txt')).readlines()
         self.debug = kwargs.pop("debug", False)
         self.proxies = SmartHat(self.get_proxies())
-        self.history = deque(maxlen=20)
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
     def get_proxies(self, finders=[Flatfile, ProxySpy]):
@@ -55,7 +45,7 @@ class ProxyServer(HTTPServer):
             new_proxies = finder().get_all()
             proxies.update(new_proxies)
             logging.info("%s discovered %s proxies." % (finder.__name__,
-                len(new_proxies)))
+                                                        len(new_proxies)))
         logging.info("Added %s new proxies." % len(proxies))
         return list(proxies)
 
@@ -74,11 +64,19 @@ class ProxyServer(HTTPServer):
         while (not success and tries > 0):
             try:
                 proxy = self.get_proxy()
+            except IndexError:
+                # Not enough proxy servers.
+                request.write("HTTP/1.1 429\r\n"\
+                    "Waldo is receiving too many inbound requests."\
+                    "Try again soon.")
+                request.finish()
+
+            try:
                 response = yield self.http_client.fetch(request.uri,
-                    headers=request.headers,
-                    request_timeout=5,
-                    **proxy.connection_attrs
-                )
+                                                        headers=request.headers,
+                                                        request_timeout=5,
+                                                        **proxy.connection_attrs
+                                                        )
             except tornado.httpclient.HTTPError as e:
                 logging.error(e)
                 status_code = e.code
@@ -96,7 +94,10 @@ class ProxyServer(HTTPServer):
                     self.restore_proxy(proxy)
 
         if success:
-           request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" %
+            request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" %
+                          (len(response.body), response.body))
+        else:
+            request.write("HTTP/1.1 400\r\nContent-Length: %d\r\n\r\n%s" %
                           (len(response.body), response.body))
         request.finish()
 

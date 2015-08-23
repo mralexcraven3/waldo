@@ -1,9 +1,0 @@
-- Documentation on how finders work.
-- Remove unneeded imports.
-- Get benchmark to work using tornado and not gevent.
-- Make javascript better.
-- Web console?
-    - Show graph of performance over time.
-    - Green/red connection stats.
-- What to do if there are too many concurrent connections and proxy list is
-- empty
