@@ -11,6 +11,7 @@ import tornadoredis
 import logging
 logger = logging.getLogger(__name__)
 
+from config import redis_config, redis_channel
 from smarthat import SmartHat
 from finders.flatfile import Flatfile
 from finders.proxyspy import ProxySpy
@@ -24,14 +25,13 @@ define("loglevel", default='INFO', type=str, help='logging level')
 
 pth = lambda x: os.path.join(os.path.dirname(__file__), x)
 
-redis_conn = tornadoredis.Client()
+redis_conn = tornadoredis.Client(**redis_config)
 redis_conn.connect()
 
 
 class ProxyServer(HTTPServer):
     http_client = tornado.httpclient.AsyncHTTPClient()
     fatal_error_codes = (502, 503, 407, 403, 599)
-    REDIS_CHANNEL = "waldo"
 
     def __init__(self, *args, **kwargs):
         self.user_agents = open(pth('user_agents.txt')).readlines()
@@ -82,11 +82,11 @@ class ProxyServer(HTTPServer):
                 status_code = e.code
                 tries -= 1
                 proxy.mark_failure()
-                redis_conn.publish(self.REDIS_CHANNEL, status_code)
+                redis_conn.publish(redis_channel, status_code)
                 if not status_code in self.fatal_error_codes:
                     self.restore_proxy(proxy)
             else:
-                redis_conn.publish(self.REDIS_CHANNEL, response.code)
+                redis_conn.publish(redis_channel, response.code)
                 if response.code == 200:
                     logging.info("Success")
                     success = True

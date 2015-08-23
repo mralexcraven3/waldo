@@ -7,6 +7,8 @@ import tornado.ioloop
 import tornadoredis
 import os
 
+from config import redis_config, redis_channel
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("app/templates/index.html")
@@ -18,9 +20,9 @@ class MessageHandler(tornado.websocket.WebSocketHandler):
 
     @tornado.gen.engine
     def listen(self):
-        self.client = tornadoredis.Client()
+        self.client = tornadoredis.Client(**redis_config)
         self.client.connect()
-        yield tornado.gen.Task(self.client.subscribe, 'waldo')
+        yield tornado.gen.Task(self.client.subscribe, redis_channel)
         self.client.listen(self.on_message)
 
     def on_message(self, msg):
