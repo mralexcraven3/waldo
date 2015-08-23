@@ -9,15 +9,17 @@ Array.prototype.average = function () {
 $(document).ready(function() {
     var history = [];
     var ws = new WebSocket("ws://localhost:1235/websocket");
-    
     var $l100 = $("#load-100");
     var $l50 = $("#load-50");
     var $tr = $("#total-req");
     var $rs = $("#req-sec");
 
     var refresh = function() {
-        $l100.html((100 * history.slice(-500).average()).toFixed(2) + "%");
-        $l50.html((100 * history.slice(-50).average()).toFixed(2) + "%");
+        var l100 = (100 * history.slice(-500).average()).toFixed(2) + "%";
+        $l100.html(l100);
+        var l50 = (100 * history.slice(-50).average()).toFixed(2) + "%";
+        $l50.html(l50);
+        $("title").html("Waldo | " + l100);
         $tr.html(history.length);
     };
 
@@ -30,6 +32,4 @@ $(document).ready(function() {
         history.push(handle_response(evt.data));
         refresh();
     };
-
-
 });

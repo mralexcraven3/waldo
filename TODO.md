@@ -1,6 +1,7 @@
 - Documentation on how finders work.
 - Remove unneeded imports.
 - Get benchmark to work using tornado and not gevent.
+- Make javascript better.
 - Web console?
     - Show graph of performance over time.
     - Green/red connection stats.

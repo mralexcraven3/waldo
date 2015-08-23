@@ -44,25 +44,11 @@ When crawling a large website, you'll often find yourself stitching together var
 proxy server lists. Waldo has the concept of a `Finder`, which is basically a class 
 that pulls in a list of proxy servers for you.
 
-## Custom Headers
-
-The following HTTP headers are supported:
-
-`Waldo-Timeout`: Timeout time (in seconds) before an individual HTTP request times out.
-
-`Waldo-Max-Retries`: The maximum number of retries allowed before the proxy fails.
-
-`Waldo-Must-Succeed`: `1` if the request must succeed - else `0`. Currently, `Waldo-Must-Succeed` sets `Waldo-Max-Retries` to `100` retries.
-
 To test, try this:
-
-```bash
-curl -x http://localhost:1234/ --header "Waldo-Timeout: 1" --header "Waldo-Max-Retries: 1" --verbose http://omarish.com
-```
 
 ## Setup
 
-First, install the python dependencies:
+First, make sure redis is installed. Then, install the python dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -73,7 +59,7 @@ pip install -r requirements.txt
 To run the server:
 
 ```bash
-python -m web.server
+$ python server.py --port=1234
 ```
 
 By default, waldo listens on port 1234 on all network interfaces.
@@ -81,16 +67,18 @@ By default, waldo listens on port 1234 on all network interfaces.
 To make sure it's working, try this:
 
 ```bash
-curl -XGET http://omarish.com -x http://localhost:1234
+$ curl -XGET http://omarish.com -x http://localhost:1234
 ```
 
-## Doctests
+## Stats Monitor
+
+![Stats Monitor](https://github.com/omarish/waldo/blob/master/doc/Graphics/Stats-Page.png)
+
+To run the accompanying monitoring page, run the monitoring server:
 
 ```bash
-python -m doctest server.py
+$ python monitor.py
 ```
 
-## TODO
+The monitoring page by default listens on port 1235.
 
-- [] Support SOCKS.
-- [] Smarter proxy balancing.

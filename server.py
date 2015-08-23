@@ -76,7 +76,7 @@ class ProxyServer(HTTPServer):
                 proxy = self.get_proxy()
                 response = yield self.http_client.fetch(request.uri,
                     headers=request.headers,
-                    request_timeout=10,
+                    request_timeout=5,
                     **proxy.connection_attrs
                 )
             except tornado.httpclient.HTTPError as e:
