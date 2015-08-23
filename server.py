@@ -10,9 +10,9 @@ import tornado.gen
 import tornadoredis
 import logging
 logger = logging.getLogger(__name__)
+import heapq
 
 from config import redis_config, redis_channel
-from smarthat import SmartHat
 from finders.flatfile import Flatfile
 from finders.proxyspy import ProxySpy
 
@@ -36,10 +36,12 @@ class ProxyServer(HTTPServer):
     def __init__(self, *args, **kwargs):
         self.user_agents = open(pth('user_agents.txt')).readlines()
         self.debug = kwargs.pop("debug", False)
-        self.proxies = SmartHat(self.get_proxies())
+        proxies = self.load_proxies()
+        heapq.heapify(proxies)
+        self.proxies = proxies
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
-    def get_proxies(self, finders=[Flatfile, ProxySpy]):
+    def load_proxies(self, finders=[Flatfile, ProxySpy]):
         proxies = set()
         for finder in finders:
             new_proxies = finder().get_all()
@@ -50,10 +52,10 @@ class ProxyServer(HTTPServer):
         return list(proxies)
 
     def get_proxy(self):
-        return self.proxies.pop()
+        return heapq.heappop(self.proxies)
 
     def restore_proxy(self, proxy):
-        self.proxies.push(proxy)
+        heapq.heappush(self.proxies, proxy)
 
     @tornado.gen.engine
     def handle_request(self, request):
@@ -77,7 +79,7 @@ class ProxyServer(HTTPServer):
                                                         request_timeout=5,
                                                         **proxy.connection_attrs
                                                         )
-            except:
+            except Exception, e:
                 logging.error(e)
                 status_code = e.code
                 tries -= 1
