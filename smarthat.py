@@ -1,6 +1,4 @@
 import heapq
-from operator import attrgetter
-
 
 class SmartHat:
     def __init__(self, iterable):
@@ -21,22 +19,3 @@ class SmartHat:
         for obj in self.heap:
             yield(obj)
         raise StopIteration()
-
-
-import random
-if __name__ == '__test__':
-    test_list = [
-        '127.0.0.1:1230',
-        '127.0.0.1:1231',
-        '127.0.0.1:1232',
-        '127.0.0.1:1233',
-        '127.0.0.1:1234',
-    ]
-    sh = SmartHat(test_list)
-    for i in range(100):
-        elem = sh.pop()
-        if random.random() > .5:
-            elem.success()
-        else:
-            elem.fail()
-        sh.push(elem)
