@@ -84,8 +84,8 @@ The monitoring page by default listens on port 1235.
 
 ## Testing and Benchmarking
 
-I still need to write proper test coverage, but do have a benchmarking utility
-in `benchmark.py` that will simulate heavy requests. Additionally,
+I've been using a benchmarking utility
+in `benchmark.py` to will simulate heavy requests. Additionally,
 [Apache Bench](http://httpd.apache.org/docs/2.2/programs/ab.html)
 and [Siege](https://www.joedog.org/siege-home/) have been very helpful.  
 
