@@ -1,3 +1,5 @@
+gevent==1.1b3
+greenlet==0.4.7
 pycurl==7.19.0
 statsd==2.0.3
 tornado==3.1
