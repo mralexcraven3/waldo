@@ -77,7 +77,7 @@ class ProxyServer(HTTPServer):
                                                         request_timeout=5,
                                                         **proxy.connection_attrs
                                                         )
-            except tornado.httpclient.HTTPError as e:
+            except:
                 logging.error(e)
                 status_code = e.code
                 tries -= 1
