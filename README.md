@@ -44,8 +44,6 @@ When crawling a large website, you'll often find yourself stitching together var
 proxy server lists. Waldo has the concept of a `Finder`, which is basically a class
 that pulls in a list of proxy servers for you.
 
-To test, try this:
-
 ## Setup
 
 First, make sure redis is installed. Then, install the python dependencies:

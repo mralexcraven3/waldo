@@ -1,5 +1,11 @@
 import heapq
 
+"""
+A wrapper around the heapq class. This used to handle a lot more logic, but
+I'm slowly moving the logic out of it and into other classes; will likely 
+remove it in the future.
+"""
+
 class SmartHat:
     def __init__(self, iterable):
         heapq.heapify(iterable)
