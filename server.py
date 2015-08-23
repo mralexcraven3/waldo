@@ -31,7 +31,7 @@ redis_conn.connect()
 
 class ProxyServer(HTTPServer):
     http_client = tornado.httpclient.AsyncHTTPClient()
-    fatal_error_codes = (502, 503, 407, 403, 599)
+    fatal_error_codes = (403, 599)
 
     def __init__(self, *args, **kwargs):
         self.user_agents = open(pth('user_agents.txt')).readlines()
@@ -41,7 +41,7 @@ class ProxyServer(HTTPServer):
         self.proxies = proxies
         super(ProxyServer, self).__init__(self.handle_request, **kwargs)
 
-    def load_proxies(self, finders=[Flatfile, ProxySpy]):
+    def load_proxies(self, finders=[ProxySpy]):
         proxies = set()
         for finder in finders:
             new_proxies = finder().get_all()
@@ -62,7 +62,7 @@ class ProxyServer(HTTPServer):
         if not 'User-Agent' in request.headers:
             request.headers['User-Agent'] = random.choice(self.user_agents)
 
-        success, tries, status_code = False, 10, 200
+        success, tries = False, 10
         while (not success and tries > 0):
             try:
                 proxy = self.get_proxy()
@@ -81,26 +81,25 @@ class ProxyServer(HTTPServer):
                                                         )
             except Exception, e:
                 logging.error(e)
-                status_code = e.code
+                if hasattr(e, 'code'):
+                    status_code = e.code
+                    redis_conn.publish(redis_channel, status_code)
+                    if not status_code in fatal_error_codes:
+                        # If it's a non-terminal error, add the proxy back to the queue.
+                        self.restore_proxy(proxy)
+                else:
+                    status_code = None
                 tries -= 1
-                proxy.mark_failure()
-                redis_conn.publish(redis_channel, status_code)
-                if not status_code in self.fatal_error_codes:
-                    self.restore_proxy(proxy)
             else:
                 redis_conn.publish(redis_channel, response.code)
-                if response.code == 200:
-                    logging.info("Success")
-                    success = True
-                    proxy.mark_success()
-                    self.restore_proxy(proxy)
-
-        if success:
-            request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" %
+                logging.info("Success")
+                success = True
+                self.restore_proxy(proxy)
+                request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" %
                           (len(response.body), response.body))
-        else:
-            request.write("HTTP/1.1 400\r\nContent-Length: %d\r\n\r\n%s" %
-                          (len(response.body), response.body))
+        if tries == 0 and not success:
+            # The request failed because of too many retries.
+            request.write("HTTP/1.1 503")
         request.finish()
 
 
