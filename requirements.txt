@@ -1,4 +1,4 @@
-gevent==1.1b3
+gevent==1.2a1
 greenlet==0.4.7
 pycurl==7.19.0
 statsd==2.0.3
