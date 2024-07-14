@@ -1,0 +1,177 @@
+repo_name: mralexcraven3/waldo
+report_id: d155f8bc8a1753ce4278f7fe1ab02aef
+version: 0.1
+repo_type: Public
+timestamp: '2024-07-14T00:36:18+00:00'
+requested_by: omarish
+provider: github
+branch: master
+detected_tools_count: 10
+tools:
+- name: CSS 3
+  description: The latest evolution of the Cascading Style Sheets language
+  website_url: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS3
+  open_source: true
+  hosted_saas: false
+  category: Languages & Frameworks
+  sub_category: Languages
+  image_url: https://img.stackshare.io/service/6727/css.png
+  detection_source_url: https://github.com/mralexcraven3/waldo
+  detection_source: Repo Metadata
+- name: JavaScript
+  description: Lightweight, interpreted, object-oriented language with first-class
+    functions
+  website_url: https://developer.mozilla.org/en-US/docs/Web/JavaScript
+  open_source: true
+  hosted_saas: false
+  category: Languages & Frameworks
+  sub_category: Languages
+  image_url: https://img.stackshare.io/service/1209/javascript.jpeg
+  detection_source_url: https://github.com/mralexcraven3/waldo
+  detection_source: Repo Metadata
+- name: Python
+  description: A clear and powerful object-oriented programming language, comparable
+    to Perl, Ruby, Scheme, or Java.
+  website_url: https://www.python.org
+  open_source: true
+  hosted_saas: false
+  category: Languages & Frameworks
+  sub_category: Languages
+  image_url: https://img.stackshare.io/service/993/pUBY5pVj.png
+  detection_source_url: https://github.com/mralexcraven3/waldo
+  detection_source: Repo Metadata
+- name: Git
+  description: Fast, scalable, distributed revision control system
+  website_url: http://git-scm.com/
+  open_source: true
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Version Control System
+  image_url: https://img.stackshare.io/service/1046/git.png
+  detection_source_url: https://github.com/mralexcraven3/waldo
+  detection_source: Repo Metadata
+- name: PyPI
+  description: A repository of software for the Python programming language
+  website_url: https://pypi.org/
+  open_source: false
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Hosted Package Repository
+  image_url: https://img.stackshare.io/service/12572/-RIWgodF_400x400.jpg
+  detection_source_url: https://github.com/mralexcraven3/waldo/blob/master/requirements.txt
+  detection_source: requirements.txt
+  last_updated_by: Omar Bohsali
+  last_updated_on: 2013-09-24 22:28:05.000000000 Z
+- name: StatsD
+  description: Simple daemon for easy stats aggregation
+  website_url: https://github.com/etsy/statsd/
+  license: MIT
+  open_source: true
+  hosted_saas: false
+  category: Monitoring
+  sub_category: Monitoring Tools
+  image_url: https://img.stackshare.io/service/932/default_b8c7d49298132d46fbef113905bcba1896158113.png
+  detection_source_url: https://github.com/mralexcraven3/waldo/blob/master/requirements.txt
+  detection_source: requirements.txt
+  last_updated_by: Omar Bohsali
+  last_updated_on: 2013-12-03 01:41:01.000000000 Z
+- name: gevent
+  description: Coroutine network library for Python
+  website_url: http://gevent.org
+  open_source: false
+  hosted_saas: false
+  category: Application Hosting
+  sub_category: Web Servers
+  image_url: https://img.stackshare.io/service/1772/s9Bm2Iyx_400x400.jpg
+  detection_source_url: https://github.com/mralexcraven3/waldo/blob/master/requirements.txt
+  detection_source: requirements.txt
+  last_updated_by: Omar Bohsali
+  last_updated_on: 2015-08-23 01:12:59.000000000 Z
+- name: ujson
+  description: Ultra fast JSON encoder and decoder for Python
+  package_url: https://pypi.org/project/ujson
+  version: '1.33'
+  license: DSDP
+  open_source: true
+  hosted_saas: false
+  category: Libraries
+  sub_category: PyPI Packages
+  image_url: https://img.stackshare.io/package/20357/default_1e2908ef2614eb1bb39298a5fc937d8c068f3a2c.png
+  detection_source_url: https://github.com/mralexcraven3/waldo/blob/master/requirements.txt
+  detection_source: requirements.txt
+  last_updated_by: Omar Bohsali
+  last_updated_on: 2013-09-24 22:28:05.000000000 Z
+  vulnerabilities:
+  - name: Incorrect handling of invalid surrogate pair characters
+    cve_id: CVE-2022-31116
+    cve_url: https://github.com/advisories/GHSA-wpqr-jcpx-745r
+    detected_date: Jul 6
+    severity: high
+    first_patched: 5.4.0
+  - name: Potential double free of buffer during string decoding
+    cve_id: CVE-2022-31117
+    cve_url: https://github.com/advisories/GHSA-fm67-cv37-96ff
+    detected_date: Jul 6
+    severity: moderate
+    first_patched: 5.4.0
+- name: tornado
+  description: Tornado is a Python web framework and asynchronous networking library
+  package_url: https://pypi.org/project/tornado
+  version: '3.1'
+  license: Apache-2.0
+  open_source: true
+  hosted_saas: false
+  category: Libraries
+  sub_category: PyPI Packages
+  image_url: https://img.stackshare.io/package/19860/default_4a8a8fdc10130068bf295812b98e9b72fb42fe70.png
+  detection_source_url: https://github.com/mralexcraven3/waldo/blob/master/requirements.txt
+  detection_source: requirements.txt
+  last_updated_by: Omar Bohsali
+  last_updated_on: 2015-08-21 23:58:18.000000000 Z
+  vulnerabilities:
+  - name: Inconsistent Interpretation of HTTP Requests ('HTTP Request/Response Smuggling')
+      in tornado
+    cve_id:
+    cve_url: https://github.com/advisories/GHSA-753j-mpmx-qq6g
+    detected_date: Jun 7
+    severity: moderate
+    first_patched: 6.4.1
+  - name: Tornado has a CRLF injection in CurlAsyncHTTPClient headers
+    cve_id:
+    cve_url: https://github.com/advisories/GHSA-w235-7p84-xx57
+    detected_date: Jun 7
+    severity: moderate
+    first_patched: 6.4.1
+  - name: Tornado XSRF cookie allows side-channel attack against TLS (BREACH attack)
+    cve_id: CVE-2014-9720
+    cve_url: https://github.com/advisories/GHSA-8vpw-mgpf-mpvv
+    detected_date: Feb 3
+    severity: moderate
+    first_patched: 3.2.2
+  - name: Tornado vulnerable to HTTP request smuggling via improper parsing of `Content-Length`
+      fields and chunk lengths
+    cve_id:
+    cve_url: https://github.com/advisories/GHSA-qppv-j76h-2rpx
+    detected_date: Aug 15
+    severity: moderate
+    first_patched: 6.3.3
+  - name: Open redirect in Tornado
+    cve_id: CVE-2023-28370
+    cve_url: https://github.com/advisories/GHSA-hj3f-6gcp-jg8j
+    detected_date: May 26
+    severity: moderate
+    first_patched: 6.3.2
+- name: greenlet
+  description: Lightweight in-process concurrent programming
+  package_url: https://pypi.org/project/greenlet
+  version: 0.4.7
+  license: MIT
+  open_source: true
+  hosted_saas: false
+  category: Libraries
+  sub_category: PyPI Packages
+  image_url: https://img.stackshare.io/package/20137/default_e3ea003987b13e5c9b8c9000c748b25a9c0d9ecd.png
+  detection_source_url: https://github.com/mralexcraven3/waldo/blob/master/requirements.txt
+  detection_source: requirements.txt
+  last_updated_by: Omar Bohsali
+  last_updated_on: 2015-08-23 01:12:59.000000000 Z
